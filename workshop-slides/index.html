@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>T3 Workshop — Day 1: Schema-First</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="logo"><b>T3</b>&thinsp;WORKSHOP</div>
+  <div class="nav-links">
+    <a href="index.html" class="active">Day 1</a>
+    <a href="day2.html">Day 2</a>
+    <a href="day3.html">Day 3</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ═══ HERO ═══ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="tag"><span class="dot"></span> Session 1 &middot; Week 1</div>
+    <h1>Schema-first.<br><em>Type-safe</em> forever.</h1>
+    <p class="subtitle">
+      Traditional stacks break types across three layers. The T3 stack flows them
+      from one schema — database to API to UI — with zero manual definitions.
+    </p>
+    <div class="cta-group">
+      <a href="#s1" class="btn btn-primary">Begin Day 1 &darr;</a>
+      <a href="day2.html" class="btn btn-ghost">Skip to Day 2 &rarr;</a>
+    </div>
+    <div class="tech-bar">
+      <span class="tech-label">Powered by</span>
+      <div class="logos">
+        <img src="assets/prisma.svg" alt="Prisma" title="Prisma">
+        <img src="assets/trpc.png" alt="tRPC" title="tRPC" style="border-radius:50%;">
+        <img src="assets/nextjs.png" alt="Next.js" title="Next.js" style="border-radius:50%;">
+        <img src="assets/typescript.svg" alt="TypeScript" title="TypeScript">
+        <img src="assets/tailwindcss.svg" alt="Tailwind" title="Tailwind CSS">
+        <img src="assets/tanstack.png" alt="TanStack" title="TanStack Query" style="border-radius:50%;">
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ WEEK 1 OVERVIEW ═══ -->
+<div class="slide reveal" id="s1">
+  <div class="slide-label"><span class="line"></span> Workshop overview</div>
+  <h2>Week 1: Build with the T3 stack</h2>
+  <p style="margin-bottom:2rem;">
+    Three sessions, one goal — go from zero to a fully typed, deployed feature.
+  </p>
+
+  <div class="week-timeline reveal-stagger">
+    <div class="wt-day">
+      <div class="wt-marker active"></div>
+      <div class="wt-content">
+        <h4>Day 1 <span class="wt-tag">Today</span></h4>
+        <p class="wt-title">Schema-first data layer</p>
+        <p>Prisma models, migrations, generated types. Your single source of truth.</p>
+      </div>
+    </div>
+    <div class="wt-day">
+      <div class="wt-marker"></div>
+      <div class="wt-content">
+        <h4>Day 2</h4>
+        <p class="wt-title">tRPC — backend is just functions</p>
+        <p>Full CRUD router, input validation with Zod, protected procedures.</p>
+      </div>
+    </div>
+    <div class="wt-day">
+      <div class="wt-marker"></div>
+      <div class="wt-content">
+        <h4>Day 3</h4>
+        <p class="wt-title">Frontend — close the loop</p>
+        <p>TanStack Query, Tailwind, and shipping a complete feature end-to-end.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols reveal" style="margin-top:2rem;">
+    <div class="callout" style="margin:0;">
+      <h4>Format</h4>
+      <p>Short concept intro, then live coding together. You'll build as we go — not just watch.</p>
+    </div>
+    <div class="callout" style="margin:0;">
+      <h4>By the end</h4>
+      <p>You'll own a working app where one schema change ripples types from database to UI automatically.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ THE PROBLEM: REST ═══ -->
+<div class="slide reveal" data-num="00">
+  <div class="slide-label"><span class="line"></span> The problem — REST</div>
+  <h2>How types break: REST / OpenAPI</h2>
+  <p style="margin-bottom:1.5rem;">
+    Your PM wants a <span class="c">status</span> field on tasks. Here's the typical REST workflow — and where it falls apart.
+  </p>
+
+  <div class="pipeline reveal-stagger" style="margin-bottom:1.5rem;">
+    <div class="pipe-step">
+      <span class="pipe-icon">1</span>
+      <span class="pipe-text">Add <b>status</b> column to Postgres</span>
+    </div>
+    <span class="pipe-arr">&rarr;</span>
+    <div class="pipe-step">
+      <span class="pipe-icon">2</span>
+      <span class="pipe-text">Update Express route to return it</span>
+    </div>
+    <span class="pipe-arr">&rarr;</span>
+    <div class="pipe-step">
+      <span class="pipe-icon">3</span>
+      <span class="pipe-text">Update OpenAPI spec <span style="color:var(--coral);">(forgotten)</span></span>
+    </div>
+    <span class="pipe-arr">&rarr;</span>
+    <div class="pipe-step">
+      <span class="pipe-icon">4</span>
+      <span class="pipe-text">Frontend uses stale types</span>
+    </div>
+  </div>
+
+  <div class="cols reveal">
+    <div>
+      <div class="terminal" style="margin:0;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">backend/routes/tasks.ts</span>
+        </div>
+        <pre><span class="cm">// v1: status is required</span>
+<span class="fn">app</span>.<span class="fn">get</span>(<span class="str">"/api/tasks"</span>, <span class="kw">async</span> (req, res) =&gt; {
+  <span class="kw">const</span> tasks = <span class="kw">await</span> <span class="fn">db</span>.<span class="fn">query</span>(<span class="str">`
+    SELECT id, title, status FROM tasks
+  `</span>);
+  res.<span class="fn">json</span>(tasks);
+});
+
+<span class="cm">// Two months later: PM says "status is</span>
+<span class="cm">// optional for imported tasks." You ALTER</span>
+<span class="cm">// to allow NULL. The endpoint still works.</span>
+<span class="cm">// You meant to update openapi.yaml too</span>
+<span class="cm">// but the PR got merged without it.</span></pre>
+      </div>
+    </div>
+    <div>
+      <div class="terminal" style="margin:0;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">frontend/components/TaskCard.tsx</span>
+        </div>
+        <pre><span class="cm">// Auto-generated from OpenAPI (stale)</span>
+<span class="kw">interface</span> <span class="tp">Task</span> {
+  <span class="pr">id</span>: <span class="tp">string</span>;
+  <span class="pr">title</span>: <span class="tp">string</span>;
+  <span class="pr">status</span>: <span class="tp">string</span>; <span class="cm">// ← says required</span>
+}
+
+<span class="kw">function</span> <span class="fn">TaskCard</span>({ <span class="pr">task</span> }: { <span class="pr">task</span>: <span class="tp">Task</span> }) {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">span</span>&gt;{<span class="fn">task</span>.<span class="pr">status</span>.<span class="fn">toUpperCase</span>()}&lt;/<span class="fn">span</span>&gt;
+  );
+}
+<span class="cm">// 💥 "Cannot read properties of null"</span>
+<span class="cm">// User sees a white screen. No build error.</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warn reveal" style="margin-top:1.5rem;">
+    <h4>Where it broke</h4>
+    <p>Types lived in <strong style="color:var(--tx);">three places</strong> — the Postgres column (<span class="c">ALTER TABLE</span>),
+    the OpenAPI YAML (<span class="c">status: {type: string}</span>), and the generated frontend interface.
+    The column changed. The other two didn't. No compiler caught it.</p>
+  </div>
+</div>
+
+<!-- ═══ THE PROBLEM: GRAPHQL ═══ -->
+<div class="slide reveal">
+  <div class="slide-label"><span class="line"></span> The problem — GraphQL</div>
+  <h2>How types break: GraphQL</h2>
+  <p style="margin-bottom:1.5rem;">
+    GraphQL has a schema — so it should be safe, right? Same feature, same field. Watch what happens.
+  </p>
+
+  <div class="pipeline reveal-stagger" style="margin-bottom:1.5rem;">
+    <div class="pipe-step">
+      <span class="pipe-icon">1</span>
+      <span class="pipe-text">Add <b>status</b> to schema.graphql</span>
+    </div>
+    <span class="pipe-arr">&rarr;</span>
+    <div class="pipe-step">
+      <span class="pipe-icon">2</span>
+      <span class="pipe-text">Write resolver to fetch from DB</span>
+    </div>
+    <span class="pipe-arr">&rarr;</span>
+    <div class="pipe-step">
+      <span class="pipe-icon">3</span>
+      <span class="pipe-text">Run <b>graphql-codegen</b></span>
+    </div>
+    <span class="pipe-arr">&rarr;</span>
+    <div class="pipe-step">
+      <span class="pipe-icon">4</span>
+      <span class="pipe-text">Frontend uses generated types</span>
+    </div>
+  </div>
+
+  <div class="cols reveal">
+    <div>
+      <div class="terminal" style="margin:0 0 1rem;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">schema.graphql</span>
+        </div>
+        <pre><span class="kw">type</span> <span class="tp">Task</span> {
+  <span class="pr">id</span>:     <span class="tp">ID!</span>
+  <span class="pr">title</span>:  <span class="tp">String!</span>
+  <span class="pr">status</span>: <span class="tp">String!</span>  <span class="cm"># "!" means non-null</span>
+}
+
+<span class="kw">type</span> <span class="tp">Query</span> {
+  <span class="fn">tasks</span>: [<span class="tp">Task!</span>]!
+}</pre>
+      </div>
+      <div class="terminal" style="margin:0;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">resolvers/task.ts</span>
+        </div>
+        <pre><span class="kw">export const</span> resolvers = {
+  <span class="tp">Query</span>: {
+    <span class="fn">tasks</span>: <span class="kw">async</span> () =&gt; {
+      <span class="kw">return</span> <span class="fn">db</span>.<span class="fn">query</span>(<span class="str">`
+        SELECT id, title, status
+        FROM tasks
+      `</span>);
+    },
+  },
+};
+<span class="cm">// DB has NULLs for imported tasks</span>
+<span class="cm">// Resolver doesn't validate — just</span>
+<span class="cm">// passes rows through. Schema says !</span>
+<span class="cm">// but GraphQL doesn't check at runtime.</span></pre>
+      </div>
+    </div>
+    <div>
+      <div class="terminal" style="margin:0 0 1rem;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">generated/graphql.ts <span style="color:var(--coral);">(stale)</span></span>
+        </div>
+        <pre><span class="cm">// Auto-generated by graphql-codegen</span>
+<span class="cm">// Last run: 2 months ago</span>
+<span class="kw">export interface</span> <span class="tp">Task</span> {
+  <span class="pr">id</span>: <span class="tp">string</span>;
+  <span class="pr">title</span>: <span class="tp">string</span>;
+  <span class="pr">status</span>: <span class="tp">string</span>; <span class="cm">// codegen trusts the "!"</span>
+}
+<span class="cm">// Nobody re-ran codegen after the</span>
+<span class="cm">// schema changed. Types are frozen.</span></pre>
+      </div>
+      <div class="terminal" style="margin:0;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">frontend/components/TaskCard.tsx</span>
+        </div>
+        <pre><span class="kw">const</span> { <span class="pr">data</span> } = <span class="fn">useQuery</span>(<span class="tp">GET_TASKS</span>);
+
+{<span class="pr">data</span>.<span class="pr">tasks</span>.<span class="fn">map</span>(<span class="pr">task</span> =&gt; (
+  &lt;<span class="fn">span</span>&gt;{<span class="fn">task</span>.<span class="pr">status</span>.<span class="fn">toUpperCase</span>()}&lt;/<span class="fn">span</span>&gt;
+))}
+<span class="cm">// 💥 Same crash. "!" was a lie.</span>
+<span class="cm">// Resolver returned null, codegen</span>
+<span class="cm">// was stale, nobody caught it.</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warn reveal" style="margin-top:1.5rem;">
+    <h4>Where it broke</h4>
+    <p>GraphQL adds a schema layer — but it's <strong style="color:var(--tx);">not validated at runtime</strong>.
+    The <span class="c">!</span> in <span class="c">String!</span> is a promise, not an enforcement.
+    And <span class="c">graphql-codegen</span> only works if someone remembers to run it.
+    Types still live in multiple places: SDL schema, resolver logic, generated client types.</p>
+  </div>
+</div>
+
+<!-- ═══ WHY STARTUPS CAN'T AFFORD THIS ═══ -->
+<div class="slide reveal">
+  <div class="slide-label"><span class="line"></span> The pain</div>
+  <h2>Why startups can't afford this</h2>
+
+  <div class="pain-grid reveal-stagger">
+    <div class="pain-item">
+      <div class="pain-icon">2–3</div>
+      <h4>Small team</h4>
+      <p>You own the whole feature — database to UI. There's no "backend team" to throw it over the wall to.</p>
+    </div>
+    <div class="pain-item">
+      <div class="pain-icon">/d</div>
+      <h4>Ship daily</h4>
+      <p>Not monthly. No time for contract negotiations between services you both own.</p>
+    </div>
+    <div class="pain-item">
+      <div class="pain-icon">&times;3</div>
+      <h4>Triple sync</h4>
+      <p>Every hand-written type is a sync point — DB schema, API contract, frontend model. They <em>will</em> drift.</p>
+    </div>
+    <div class="pain-item">
+      <div class="pain-icon">&darr;0</div>
+      <h4>Zero glue</h4>
+      <p>You need types that flow from one source of truth — <strong style="color:var(--accent);">automatically</strong>.</p>
+    </div>
+  </div>
+
+  <blockquote class="reveal" style="margin-top:2rem;">
+    "If you own both sides of the wire, why are you writing types twice?"
+  </blockquote>
+</div>
+
+<!-- ═══ ENTER THE T3 STACK ═══ -->
+<div class="slide reveal">
+  <div class="slide-label"><span class="line"></span> The solution</div>
+  <h2>Enter the T3 stack</h2>
+  <p style="margin-bottom:2rem;">
+    In 2022, Theo Browne asked the same question and open-sourced a starter
+    that wires these problems away. ~40k GitHub stars later, it's the
+    default for TypeScript-first startups.
+  </p>
+
+  <div class="stack-grid reveal-stagger">
+    <div class="stack-item">
+      <img class="stack-logo" src="assets/nextjs.png" alt="Next.js">
+      <h4>Next.js</h4>
+      <p>Framework — routing, SSR, deploy</p>
+    </div>
+    <div class="stack-item">
+      <img class="stack-logo" src="assets/typescript.svg" alt="TypeScript">
+      <h4>TypeScript</h4>
+      <p>The language that makes it all work</p>
+    </div>
+    <div class="stack-item">
+      <img class="stack-logo" src="assets/prisma.svg" alt="Prisma">
+      <h4>Prisma</h4>
+      <p>DB schema &rarr; generated types</p>
+    </div>
+    <div class="stack-item">
+      <img class="stack-logo" src="assets/trpc.png" alt="tRPC">
+      <h4>tRPC</h4>
+      <p>API layer with zero type drift</p>
+    </div>
+    <div class="stack-item">
+      <img class="stack-logo" src="assets/tanstack.png" alt="TanStack Query">
+      <h4>TanStack Query</h4>
+      <p>Client data fetching + cache</p>
+    </div>
+    <div class="stack-item">
+      <img class="stack-logo" src="assets/tailwindcss.svg" alt="Tailwind">
+      <h4>Tailwind</h4>
+      <p>Utility-first styling</p>
+    </div>
+  </div>
+
+  <div class="callout ok reveal" style="margin-top:2rem;">
+    <h4>Key insight</h4>
+    <p>The Prisma schema is the <strong style="color:var(--teal);">single source of truth</strong>.
+    Every type in the stack — from database to API to component props — traces back to it.
+    That triple-sync problem? Gone.</p>
+  </div>
+</div>
+
+<!-- ═══ SAME FEATURE, T3 STYLE ═══ -->
+<div class="slide reveal">
+  <div class="slide-label"><span class="line"></span> The difference</div>
+  <h2>Same feature, T3 style</h2>
+  <p style="margin-bottom:1.5rem;">
+    Same task. Same <span class="c">status</span> field. One schema change, and the compiler does the rest.
+  </p>
+
+  <div class="pipeline reveal-stagger" style="margin-bottom:1.5rem;">
+    <div class="pipe-step" style="border-color:rgba(0,212,170,0.2);">
+      <span class="pipe-icon" style="background:var(--teal);">1</span>
+      <span class="pipe-text">Update <b>schema.prisma</b></span>
+    </div>
+    <span class="pipe-arr">&rarr;</span>
+    <div class="pipe-step" style="border-color:rgba(0,212,170,0.2);">
+      <span class="pipe-icon" style="background:var(--teal);">2</span>
+      <span class="pipe-text">Run <b>prisma migrate dev</b></span>
+    </div>
+    <span class="pipe-arr">&rarr;</span>
+    <div class="pipe-step" style="border-color:rgba(200,255,0,0.2);">
+      <span class="pipe-icon" style="background:var(--accent);">3</span>
+      <span class="pipe-text">Compiler errors guide you</span>
+    </div>
+    <span class="pipe-arr">&rarr;</span>
+    <div class="pipe-step" style="border-color:rgba(200,255,0,0.2);">
+      <span class="pipe-icon" style="background:var(--accent);">4</span>
+      <span class="pipe-text">Fix, commit, deploy</span>
+    </div>
+  </div>
+
+  <div class="cols reveal">
+    <div>
+      <div class="terminal" style="margin:0 0 1rem;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">prisma/schema.prisma</span>
+        </div>
+        <pre><span class="kw">model</span> <span class="tp">Task</span> {
+  <span class="pr">id</span>     <span class="tp">String</span>  <span class="fn">@id</span> <span class="fn">@default</span>(<span class="fn">cuid</span>())
+  <span class="pr">title</span>  <span class="tp">String</span>
+  <span class="pr">status</span> <span class="tp">String?</span> <span class="cm">// ← make it optional here</span>
+}
+<span class="cm">// That's it. One line changed.</span>
+<span class="cm">// Run: npx prisma migrate dev</span>
+<span class="cm">// Prisma generates new types automatically.</span></pre>
+      </div>
+      <div class="terminal" style="margin:0;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">src/server/api/routers/task.ts</span>
+        </div>
+        <pre><span class="cm">// tRPC router — types flow from Prisma</span>
+<span class="kw">export const</span> taskRouter = <span class="fn">createTRPCRouter</span>({
+  <span class="fn">getAll</span>: publicProcedure.<span class="fn">query</span>(({ <span class="pr">ctx</span> }) =&gt; {
+    <span class="kw">return</span> <span class="pr">ctx</span>.<span class="pr">db</span>.<span class="pr">task</span>.<span class="fn">findMany</span>();
+  }),
+});
+<span class="cm">// Return type is now Task[] where</span>
+<span class="cm">// status: string | null</span>
+<span class="cm">// You didn't change this file at all.</span></pre>
+      </div>
+    </div>
+    <div>
+      <div class="terminal" style="margin:0 0 1rem;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">src/app/components/TaskCard.tsx <span style="color:var(--coral);">← error</span></span>
+        </div>
+        <pre><span class="kw">function</span> <span class="fn">TaskCard</span>({ <span class="pr">task</span> }: { <span class="pr">task</span>: <span class="tp">Task</span> }) {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">span</span>&gt;{<span class="fn">task</span>.<span class="pr">status</span>.<span class="fn">toUpperCase</span>()}&lt;/<span class="fn">span</span>&gt;
+  );        <span style="color:var(--coral);">~~~~~~~~</span>
+}
+<span class="cm">// TS2532: Object is possibly 'null'.</span>
+<span class="cm">// Compiler catches it BEFORE you run</span>
+<span class="cm">// the app. You fix it right here:</span></pre>
+      </div>
+      <div class="terminal" style="margin:0;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">src/app/components/TaskCard.tsx <span style="color:var(--teal);">← fixed</span></span>
+        </div>
+        <pre><span class="kw">function</span> <span class="fn">TaskCard</span>({ <span class="pr">task</span> }: { <span class="pr">task</span>: <span class="tp">Task</span> }) {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">span</span>&gt;
+      {<span class="fn">task</span>.<span class="pr">status</span>?.<span class="fn">toUpperCase</span>() ?? <span class="str">"No status"</span>}
+    &lt;/<span class="fn">span</span>&gt;
+  );
+}
+<span class="cm">// ✅ Compiles. Handles null. Ships safe.</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok reveal" style="margin-top:1.5rem;">
+    <h4>Zero drift</h4>
+    <p>You changed <strong style="color:var(--teal);">one line</strong> in <span class="c">schema.prisma</span>.
+    The Prisma client updated, tRPC inferred the new return type, and TypeScript
+    flagged every component that assumed <span class="c">status</span> was non-null.
+    No spec to update. No codegen to re-run. No runtime crash.</p>
+  </div>
+</div>
+
+<!-- ═══ THE COUPLING SPECTRUM ═══ -->
+<div class="slide reveal" data-num="00.5">
+  <div class="slide-label"><span class="line"></span> The boldest choice</div>
+  <h2>Why tRPC? The coupling spectrum</h2>
+  <p style="margin-bottom:0;">
+    The most opinionated piece of T3 is tRPC — it fully couples your frontend
+    to your backend. That sounds scary. Here's why it's the right call.
+  </p>
+
+  <div class="spectrum reveal">
+    <div class="spectrum-track"></div>
+    <div class="spectrum-labels">
+      <span>Decoupled</span>
+      <span>Tightly coupled</span>
+    </div>
+
+    <div class="spectrum-points reveal-stagger">
+      <div class="sp-point sp-gql">
+        <h4>GraphQL</h4>
+        <div class="sp-sub">Most decoupled</div>
+        <p>Client decides what data it needs. Server doesn't know or care who's calling.</p>
+      </div>
+
+      <div class="sp-point sp-rest">
+        <h4>REST</h4>
+        <div class="sp-sub">Contract-based</div>
+        <p>Agreed endpoints with HTTP conventions. You get what the endpoint returns.</p>
+      </div>
+
+      <div class="sp-point sp-trpc active">
+        <h4>tRPC</h4>
+        <div class="sp-sub">Fully coupled</div>
+        <p>Frontend calls backend functions directly. The compiler is your API contract.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TRADEOFFS ═══ -->
+<div class="slide reveal">
+  <div class="slide-label"><span class="line"></span> Comparison</div>
+  <h2>Tradeoffs at a glance</h2>
+
+  <div class="spectrum-points reveal-stagger" style="margin-top:2rem;">
+    <div class="sp-point sp-gql">
+      <h4>GraphQL</h4>
+      <ul class="sp-props">
+        <li><span class="sp-icon" style="color:var(--teal);">+</span> Fetch exactly what you need</li>
+        <li><span class="sp-icon" style="color:var(--teal);">+</span> Great for multi-client apps</li>
+        <li><span class="sp-icon" style="color:var(--coral);">&ndash;</span> Resolvers, N+1, codegen overhead</li>
+        <li><span class="sp-icon" style="color:var(--coral);">&ndash;</span> Complex normalized caching</li>
+      </ul>
+    </div>
+
+    <div class="sp-point sp-rest">
+      <h4>REST</h4>
+      <ul class="sp-props">
+        <li><span class="sp-icon" style="color:var(--teal);">+</span> Any client, any language</li>
+        <li><span class="sp-icon" style="color:var(--teal);">+</span> Simple HTTP caching</li>
+        <li><span class="sp-icon" style="color:var(--coral);">&ndash;</span> Types drift between client &amp; server</li>
+        <li><span class="sp-icon" style="color:var(--coral);">&ndash;</span> Over-fetching or many round trips</li>
+      </ul>
+    </div>
+
+    <div class="sp-point sp-trpc active">
+      <h4>tRPC</h4>
+      <ul class="sp-props">
+        <li><span class="sp-icon" style="color:var(--teal);">+</span> Zero type drift — compiler enforces it</li>
+        <li><span class="sp-icon" style="color:var(--teal);">+</span> No codegen, no schema files</li>
+        <li><span class="sp-icon" style="color:var(--coral);">&ndash;</span> Both sides must be TypeScript</li>
+        <li><span class="sp-icon" style="color:var(--coral);">&ndash;</span> Not for public / 3rd-party APIs</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cols reveal" style="margin-top:2rem;">
+    <div class="callout" style="margin:0;">
+      <h4>When it's perfect</h4>
+      <p>One team, one repo, one language. You own both sides of the wire. Ship fast with full type coverage.</p>
+    </div>
+    <div class="callout warn" style="margin:0;">
+      <h4>When to skip it</h4>
+      <p>Public API? Mobile clients in Swift/Kotlin? Multiple teams deploying independently?
+      Use REST or GraphQL instead.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ THE MENTAL MODEL ═══ -->
+<div class="slide reveal" data-num="01">
+  <div class="slide-label"><span class="line"></span> 10 min</div>
+  <h2>The typesafety chain</h2>
+  <p>
+    Change a column — type errors cascade from database to UI. That's the north star.
+  </p>
+
+  <div class="flow reveal">
+    <div class="flow-node">Prisma<small>Database schema</small></div>
+    <span class="flow-arr">&rarr;</span>
+    <div class="flow-node teal">tRPC<small>API layer</small></div>
+    <span class="flow-arr">&rarr;</span>
+    <div class="flow-node accent">Frontend<small>React + TanStack</small></div>
+  </div>
+
+  <div class="callout reveal">
+    <h4>The "aha" moment</h4>
+    <p>Rename a column in <span class="c">schema.prisma</span>. TypeScript errors
+    light up in your router <em>and</em> your components. No manual syncing.</p>
+  </div>
+</div>
+
+<!-- ═══ SCAFFOLD ═══ -->
+<div class="slide reveal" data-num="02">
+  <div class="slide-label"><span class="line"></span> 10 min</div>
+  <h2>Scaffold &amp; orient</h2>
+
+  <div class="terminal reveal">
+    <div class="terminal-chrome">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <span class="file">~/projects</span>
+    </div>
+    <pre><span class="fn">npm</span> create t3-app@latest</pre>
+  </div>
+
+  <div class="cols" style="margin-top:2rem;">
+    <div class="reveal">
+      <h3>Project map</h3>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">structure</span>
+        </div>
+        <pre><span class="cm">// Where your data lives</span>
+<span class="str">prisma/schema.prisma</span>
+
+<span class="cm">// Your backend</span>
+<span class="str">src/server/api/</span>
+  ├── routers/
+  └── trpc.ts
+
+<span class="cm">// Your frontend</span>
+<span class="str">src/app/</span>
+  ├── layout.tsx
+  └── page.tsx</pre>
+      </div>
+    </div>
+    <div class="reveal">
+      <h3>What matters now</h3>
+      <ul class="checks">
+        <li><span class="c">prisma/schema.prisma</span> — single source of truth</li>
+        <li><span class="c">src/server/api/</span> — tRPC routers live here</li>
+        <li><span class="c">src/app/</span> — Next.js file-based routing</li>
+      </ul>
+      <div class="callout" style="margin-top:1.5rem;">
+        <h4>Don't overthink it</h4>
+        <p>You don't need to understand every file today. Just know where your data, backend, and frontend live.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PRISMA DEEP DIVE ═══ -->
+<div class="slide reveal" data-num="03">
+  <div class="slide-label"><span class="line"></span> 30 min live coding</div>
+  <h2>Schema to typed queries</h2>
+  <p>Define your models, run a migration, get fully typed queries. No manual types.</p>
+
+  <div class="cols">
+    <div class="reveal">
+      <h3>1 &mdash; Define models</h3>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">schema.prisma</span>
+        </div>
+        <pre><span class="kw">model</span> <span class="tp">Project</span> {
+  <span class="pr">id</span>        <span class="tp">String</span>   <span class="fn">@id</span> <span class="fn">@default</span>(<span class="fn">cuid</span>())
+  <span class="pr">name</span>      <span class="tp">String</span>
+  <span class="pr">tasks</span>     <span class="tp">Task</span>[]
+  <span class="pr">createdAt</span> <span class="tp">DateTime</span> <span class="fn">@default</span>(<span class="fn">now</span>())
+}
+
+<span class="kw">model</span> <span class="tp">Task</span> {
+  <span class="pr">id</span>        <span class="tp">String</span>   <span class="fn">@id</span> <span class="fn">@default</span>(<span class="fn">cuid</span>())
+  <span class="pr">title</span>     <span class="tp">String</span>
+  <span class="pr">priority</span>  <span class="tp">Priority</span> <span class="fn">@default</span>(<span class="tp">MEDIUM</span>)
+  <span class="pr">project</span>   <span class="tp">Project</span>  <span class="fn">@relation</span>(...)
+  <span class="pr">projectId</span> <span class="tp">String</span>
+  <span class="pr">assignee</span>  <span class="tp">User?</span>    <span class="fn">@relation</span>(...)
+  <span class="pr">userId</span>    <span class="tp">String?</span>
+}
+
+<span class="kw">enum</span> <span class="tp">Priority</span> {
+  <span class="tp">LOW</span>
+  <span class="tp">MEDIUM</span>
+  <span class="tp">HIGH</span>
+}</pre>
+      </div>
+    </div>
+    <div class="reveal">
+      <h3>2 &mdash; Migrate &amp; generate</h3>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">terminal</span>
+        </div>
+        <pre><span class="cm"># Create &amp; apply the migration</span>
+<span class="fn">npx</span> prisma migrate dev <span class="str">--name init</span>
+
+<span class="cm"># Generate the typed client</span>
+<span class="fn">npx</span> prisma generate
+
+<span class="cm"># Open the visual editor</span>
+<span class="fn">npx</span> prisma studio</pre>
+      </div>
+
+      <h3 style="margin-top:1.5rem;">3 &mdash; Typed queries</h3>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">queries.ts</span>
+        </div>
+        <pre><span class="cm">// Full autocompletion, zero manual types</span>
+<span class="kw">const</span> tasks = <span class="kw">await</span> <span class="fn">prisma</span>.task.<span class="fn">findMany</span>({
+  <span class="pr">where</span>: { <span class="pr">priority</span>: <span class="str">"HIGH"</span> },
+  <span class="pr">include</span>: { <span class="pr">project</span>: <span class="kw">true</span> },
+});
+<span class="cm">// → (Task &amp; { project: Project })[]</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok reveal">
+    <h4>Zero manual types</h4>
+    <p>Every type came from the schema. Prisma generated them. You never wrote
+    <span class="c">interface Task { ... }</span>. That's the point.</p>
+  </div>
+</div>
+
+<!-- ═══ THE WORKFLOW ═══ -->
+<div class="slide reveal" data-num="04">
+  <div class="slide-label"><span class="line"></span> 5 min</div>
+  <h2>The workflow</h2>
+  <p>This is step 1 of every feature you'll ever build in this stack.</p>
+
+  <div class="steps reveal-stagger">
+    <div class="step"><span class="step-n">1</span> Requirement</div>
+    <span class="step-arr">&rarr;</span>
+    <div class="step"><span class="step-n">2</span> Schema Change</div>
+    <span class="step-arr">&rarr;</span>
+    <div class="step"><span class="step-n">3</span> migrate dev</div>
+    <span class="step-arr">&rarr;</span>
+    <div class="step"><span class="step-n">4</span> generate</div>
+    <span class="step-arr">&rarr;</span>
+    <div class="step done"><span class="step-n">5</span> Typed Queries</div>
+  </div>
+
+  <div class="assignment reveal">
+    <h3>// Today's assignment</h3>
+    <ul>
+      <li>Design your project schema — at least 3 models with relations</li>
+      <li>Run migrations and verify they apply cleanly</li>
+      <li>Seed test data into your database</li>
+      <li>Write queries to verify your relations work</li>
+      <li>Explore Prisma Studio with your seeded data</li>
+    </ul>
+    <div class="stretch">
+      <div class="stretch-label">Stretch</div>
+      <ul>
+        <li>Read the Next.js App Router docs (file-based routing, page.tsx, layouts)</li>
+        <li>Experiment with nested includes and aggregations</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<div class="end-slide">
+  <div class="page-nav">
+    <div></div>
+    <a href="day2.html">
+      <span class="pn-label">Next &rarr;</span>
+      <span class="pn-title">Day 2: tRPC — Backend is Just Functions</span>
+    </a>
+  </div>
+
+  <footer>
+    <div class="f-links">
+      <a href="index.html">Day 1: Schema</a>
+      <a href="day2.html">Day 2: tRPC</a>
+      <a href="day3.html">Day 3: Frontend</a>
+    </div>
+    <p>T3 Stack Workshop &mdash; Lyra Fellowship</p>
+  </footer>
+</div>
+
+</main>
+
+<script>
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>

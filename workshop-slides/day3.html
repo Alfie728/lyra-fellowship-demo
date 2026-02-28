@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>T3 Workshop — Day 3: Frontend + Full Loop</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav>
+  <div class="logo"><b>T3</b>&thinsp;WORKSHOP</div>
+  <div class="nav-links">
+    <a href="index.html">Day 1</a>
+    <a href="day2.html">Day 2</a>
+    <a href="day3.html" class="active">Day 3</a>
+  </div>
+</nav>
+
+<main>
+<!-- ═══ HERO ═══ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="tag"><span class="dot"></span> Session 3 &middot; Week 1</div>
+    <h1>Close the loop.<br>Ship the <em>feature.</em></h1>
+    <p class="subtitle">
+      Wire up your backend to the UI in minutes.
+      Own the feature from database to user interaction.
+    </p>
+    <div class="cta-group">
+      <a href="#s3" class="btn btn-primary">Begin Day 3 &darr;</a>
+      <a href="index.html" class="btn btn-ghost">Back to Day 1 &rarr;</a>
+    </div>
+    <div class="tech-bar">
+      <span class="tech-label">Powered by</span>
+      <div class="logos">
+        <img src="assets/prisma.svg" alt="Prisma" title="Prisma">
+        <img src="assets/trpc.png" alt="tRPC" title="tRPC" style="border-radius:50%;">
+        <img src="assets/nextjs.png" alt="Next.js" title="Next.js" style="border-radius:50%;">
+        <img src="assets/typescript.svg" alt="TypeScript" title="TypeScript">
+        <img src="assets/tailwindcss.svg" alt="Tailwind" title="Tailwind CSS">
+        <img src="assets/tanstack.png" alt="TanStack" title="TanStack Query" style="border-radius:50%;">
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ tRPC CLIENT ═══ -->
+<div class="slide reveal" id="s3" data-num="01">
+  <div class="slide-label"><span class="line"></span> 20 min</div>
+  <h2>tRPC + TanStack Query</h2>
+
+  <div class="callout reveal">
+    <h4>The key insight</h4>
+    <p><span class="c">api.task.getAll.useQuery()</span> is TanStack Query —
+    but with automatic types and fetch logic.
+    No <span class="c">fetch()</span>, no response parsing, no manual types.</p>
+  </div>
+
+  <div class="cols" style="margin-top:2rem;">
+    <div class="reveal">
+      <h3>Reading data</h3>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">TaskList.tsx</span>
+        </div>
+        <pre><span class="kw">import</span> { <span class="fn">api</span> } <span class="kw">from</span> <span class="str">"~/utils/api"</span>;
+
+<span class="kw">export function</span> <span class="fn">TaskList</span>() {
+  <span class="kw">const</span> { <span class="pr">data</span>, <span class="pr">isLoading</span>, <span class="pr">error</span> }
+    = <span class="fn">api</span>.task.getAll.<span class="fn">useQuery</span>();
+
+  <span class="kw">if</span> (isLoading) <span class="kw">return</span> &lt;<span class="tp">Spinner</span> /&gt;;
+  <span class="kw">if</span> (error) <span class="kw">return</span> &lt;<span class="tp">Error</span> /&gt;;
+
+  <span class="kw">return</span> (
+    &lt;<span class="tp">ul</span>&gt;
+      {data.<span class="fn">map</span>(<span class="pr">task</span> =&gt; (
+        &lt;<span class="tp">li</span> <span class="pr">key</span>={task.id}&gt;
+          {task.title}
+          <span class="cm">{/* ^ fully typed */}</span>
+        &lt;/<span class="tp">li</span>&gt;
+      ))}
+    &lt;/<span class="tp">ul</span>&gt;
+  );
+}</pre>
+      </div>
+      <p style="margin-top:0.5rem; font-size:0.8rem;">
+        Hover over <span class="c">task</span> — full autocompletion matching your router's return type.
+      </p>
+    </div>
+
+    <div class="reveal">
+      <h3>Writing data</h3>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">CreateTask.tsx</span>
+        </div>
+        <pre><span class="kw">export function</span> <span class="fn">CreateTask</span>() {
+  <span class="kw">const</span> utils = <span class="fn">api</span>.<span class="fn">useUtils</span>();
+
+  <span class="kw">const</span> create = <span class="fn">api</span>.task.create
+    .<span class="fn">useMutation</span>({
+      <span class="fn">onSuccess</span>: () =&gt; {
+        <span class="cm">// Invalidate stale data</span>
+        utils.task.getAll.<span class="fn">invalidate</span>();
+      },
+    });
+
+  <span class="kw">const</span> <span class="fn">handleSubmit</span> = () =&gt; {
+    create.<span class="fn">mutate</span>({
+      <span class="pr">title</span>: <span class="str">"New Task"</span>,
+      <span class="pr">priority</span>: <span class="str">"MEDIUM"</span>,
+      <span class="pr">projectId</span>: <span class="str">"..."</span>,
+    });
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="tp">button</span> <span class="pr">onClick</span>={handleSubmit}&gt;
+      Add Task
+    &lt;/<span class="tp">button</span>&gt;
+  );
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warn reveal" style="margin-top:2rem;">
+    <h4>Cache invalidation — the #1 gotcha</h4>
+    <p>After a mutation, call <span class="c">utils.task.getAll.invalidate()</span> in <span class="c">onSuccess</span>.
+    Forget this and your UI shows stale data. This <em>will</em> bite you.</p>
+  </div>
+</div>
+
+<!-- ═══ TAILWIND ═══ -->
+<div class="slide reveal" data-num="02">
+  <div class="slide-label"><span class="line"></span> 5 min</div>
+  <h2>Tailwind in five minutes</h2>
+  <p>Don't learn it. Use it. Search the docs, copy classes, iterate.</p>
+
+  <div class="cols">
+    <div class="reveal">
+      <h3 style="color:var(--tx-3);">Before</h3>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">unstyled</span>
+        </div>
+        <pre>&lt;<span class="tp">div</span>&gt;
+  &lt;<span class="tp">h2</span>&gt;My Tasks&lt;/<span class="tp">h2</span>&gt;
+  &lt;<span class="tp">ul</span>&gt;
+    &lt;<span class="tp">li</span>&gt;Fix login bug&lt;/<span class="tp">li</span>&gt;
+    &lt;<span class="tp">li</span>&gt;Add search&lt;/<span class="tp">li</span>&gt;
+  &lt;/<span class="tp">ul</span>&gt;
+&lt;/<span class="tp">div</span>&gt;</pre>
+      </div>
+    </div>
+    <div class="reveal">
+      <h3>After — 30 seconds</h3>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">tailwind</span>
+        </div>
+        <pre>&lt;<span class="tp">div</span> <span class="pr">className</span>=<span class="str">"max-w-md mx-auto p-6"</span>&gt;
+  &lt;<span class="tp">h2</span> <span class="pr">className</span>=<span class="str">"text-2xl
+    font-bold mb-4"</span>&gt;
+    My Tasks
+  &lt;/<span class="tp">h2</span>&gt;
+  &lt;<span class="tp">ul</span> <span class="pr">className</span>=<span class="str">"space-y-2"</span>&gt;
+    &lt;<span class="tp">li</span> <span class="pr">className</span>=<span class="str">"p-4 rounded-lg
+      bg-gray-800 shadow
+      hover:bg-gray-700
+      transition"</span>&gt;
+      Fix login bug
+    &lt;/<span class="tp">li</span>&gt;
+  &lt;/<span class="tp">ul</span>&gt;
+&lt;/<span class="tp">div</span>&gt;</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok reveal">
+    <h4>The whole Tailwind lesson</h4>
+    <p>Bookmark <strong style="color:var(--tx);">tailwindcss.com/docs</strong>.
+    Search for what you need. Copy classes. Iterate in the browser. That's it.</p>
+  </div>
+</div>
+
+<!-- ═══ THE FULL LOOP ═══ -->
+<div class="slide reveal" data-num="03">
+  <div class="slide-label"><span class="line"></span> 20 min live coding</div>
+  <h2>The full feature loop</h2>
+  <p>
+    Simulated ticket: <em>"Add a <span class="c">status</span> field to tasks
+    (todo / in-progress / done) with the ability to update from the UI."</em>
+  </p>
+
+  <div class="timeline" style="margin-top:2.5rem;">
+    <div class="tl-item reveal">
+      <div class="tl-time">Step 1 — Schema</div>
+      <h4>Add status to Prisma, migrate</h4>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">schema.prisma</span>
+        </div>
+        <pre><span class="kw">enum</span> <span class="tp">TaskStatus</span> {
+  <span class="tp">TODO</span>
+  <span class="tp">IN_PROGRESS</span>
+  <span class="tp">DONE</span>
+}
+
+<span class="cm">// Add to Task model:</span>
+<span class="pr">status</span>  <span class="tp">TaskStatus</span>  <span class="fn">@default</span>(<span class="tp">TODO</span>)</pre>
+      </div>
+      <div class="terminal" style="margin-top:0.75rem;">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">terminal</span>
+        </div>
+        <pre><span class="fn">npx</span> prisma migrate dev <span class="str">--name add-status</span></pre>
+      </div>
+    </div>
+
+    <div class="tl-item reveal">
+      <div class="tl-time">Step 2 — Backend</div>
+      <h4>Update router, add updateStatus mutation</h4>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">task.ts</span>
+        </div>
+        <pre><span class="fn">updateStatus</span>: <span class="tp">publicProcedure</span>
+  .<span class="fn">input</span>(z.<span class="fn">object</span>({
+    <span class="pr">id</span>: z.<span class="fn">string</span>(),
+    <span class="pr">status</span>: z.<span class="fn">enum</span>([
+      <span class="str">"TODO"</span>, <span class="str">"IN_PROGRESS"</span>, <span class="str">"DONE"</span>
+    ]),
+  }))
+  .<span class="fn">mutation</span>(({ <span class="pr">ctx</span>, <span class="pr">input</span> }) =&gt;
+    ctx.db.task.<span class="fn">update</span>({
+      <span class="pr">where</span>: { <span class="pr">id</span>: input.id },
+      <span class="pr">data</span>: { <span class="pr">status</span>: input.status },
+    })
+  ),</pre>
+      </div>
+    </div>
+
+    <div class="tl-item reveal">
+      <div class="tl-time">Step 3 — Frontend</div>
+      <h4>Status dropdown + cache invalidation</h4>
+      <div class="terminal">
+        <div class="terminal-chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="file">StatusBadge.tsx</span>
+        </div>
+        <pre><span class="kw">function</span> <span class="fn">StatusBadge</span>({ <span class="pr">task</span> }) {
+  <span class="kw">const</span> utils = <span class="fn">api</span>.<span class="fn">useUtils</span>();
+  <span class="kw">const</span> update = <span class="fn">api</span>.task.updateStatus
+    .<span class="fn">useMutation</span>({
+      <span class="fn">onSuccess</span>: () =&gt;
+        utils.task.getAll.<span class="fn">invalidate</span>(),
+    });
+
+  <span class="kw">return</span> (
+    &lt;<span class="tp">select</span>
+      <span class="pr">value</span>={task.status}
+      <span class="pr">onChange</span>={(e) =&gt;
+        update.<span class="fn">mutate</span>({
+          <span class="pr">id</span>: task.id,
+          <span class="pr">status</span>: e.target.value,
+        })
+      }&gt;
+      &lt;<span class="tp">option</span> <span class="pr">value</span>=<span class="str">"TODO"</span>&gt;To Do&lt;/<span class="tp">option</span>&gt;
+      &lt;<span class="tp">option</span> <span class="pr">value</span>=<span class="str">"IN_PROGRESS"</span>&gt;In Progress&lt;/<span class="tp">option</span>&gt;
+      &lt;<span class="tp">option</span> <span class="pr">value</span>=<span class="str">"DONE"</span>&gt;Done&lt;/<span class="tp">option</span>&gt;
+    &lt;/<span class="tp">select</span>&gt;
+  );
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <blockquote class="reveal">
+    This is what your day-to-day looks like. Requirement, schema, backend, frontend. Every feature, same loop.
+  </blockquote>
+</div>
+
+<!-- ═══ PATTERN SUMMARY ═══ -->
+<div class="slide reveal" data-num="04">
+  <div class="slide-label"><span class="line"></span> The pattern</div>
+  <h2>Every feature, same loop</h2>
+
+  <div class="steps reveal-stagger" style="margin:3rem 0;">
+    <div class="step"><span class="step-n">1</span> Schema</div>
+    <span class="step-arr">&rarr;</span>
+    <div class="step highlight"><span class="step-n">2</span> Backend</div>
+    <span class="step-arr">&rarr;</span>
+    <div class="step" style="border-color:rgba(200,255,0,0.15);"><span class="step-n">3</span> Frontend</div>
+    <span class="step-arr">&rarr;</span>
+    <div class="step done"><span class="step-n">4</span> Ship</div>
+  </div>
+
+  <div class="card-grid reveal-stagger">
+    <div class="card">
+      <div class="card-num">01</div>
+      <h3>Schema</h3>
+      <p>Add/change models in <span class="c">schema.prisma</span>. Run <span class="c">migrate dev</span>. Types auto-generate.</p>
+    </div>
+    <div class="card">
+      <div class="card-num">02</div>
+      <h3>Backend</h3>
+      <p>Add/update tRPC procedures. Zod validates input. Prisma handles queries. Return type flows to client.</p>
+    </div>
+    <div class="card">
+      <div class="card-num">03</div>
+      <h3>Frontend</h3>
+      <p><span class="c">useQuery</span> to read, <span class="c">useMutation</span> to write, <span class="c">invalidate</span> to refresh.</p>
+    </div>
+  </div>
+
+  <div class="assignment reveal" style="margin-top:3rem;">
+    <h3>// Today's assignment</h3>
+    <ul>
+      <li>Wire up your frontend to your tRPC routers</li>
+      <li>Display data with <span class="c">useQuery</span> — handle loading and error states</li>
+      <li>Create, update, and delete from the UI with <span class="c">useMutation</span></li>
+      <li>Build at least 2 complete features using the full loop</li>
+      <li>Focus on data flow — styling can be minimal</li>
+    </ul>
+    <div class="stretch">
+      <div class="stretch-label">Stretch</div>
+      <ul>
+        <li>Add auth with NextAuth and protect a route</li>
+        <li>Add optimistic updates to your mutations</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESOURCES ═══ -->
+<div class="slide reveal">
+  <div class="slide-label"><span class="line"></span> Resources</div>
+  <h2>Keep building</h2>
+
+  <div class="card-grid reveal-stagger" style="margin-top:2rem;">
+    <div class="card">
+      <h3>T3 Stack</h3>
+      <p><a href="https://create.t3.gg" target="_blank">create.t3.gg</a> — docs, tutorials, community</p>
+    </div>
+    <div class="card">
+      <h3>Prisma</h3>
+      <p><a href="https://www.prisma.io/docs" target="_blank">prisma.io/docs</a> — schema, queries, migrations</p>
+    </div>
+    <div class="card">
+      <h3>tRPC</h3>
+      <p><a href="https://trpc.io/docs" target="_blank">trpc.io/docs</a> — routers, middleware, errors</p>
+    </div>
+    <div class="card">
+      <h3>TanStack Query</h3>
+      <p><a href="https://tanstack.com/query" target="_blank">tanstack.com/query</a> — caching, mutations</p>
+    </div>
+    <div class="card">
+      <h3>Next.js</h3>
+      <p><a href="https://nextjs.org/docs" target="_blank">nextjs.org/docs</a> — app router, SSR, deploy</p>
+    </div>
+    <div class="card">
+      <h3>Tailwind CSS</h3>
+      <p><a href="https://tailwindcss.com/docs" target="_blank">tailwindcss.com/docs</a> — utilities, responsive</p>
+    </div>
+  </div>
+
+  <blockquote class="reveal" style="margin-top:3rem;">
+
+    The live hours plant the seed. The project work is where it takes root.
+  </blockquote>
+</div>
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<div class="end-slide">
+  <div class="page-nav">
+    <a href="day2.html">
+      <span class="pn-label">&larr; Previous</span>
+      <span class="pn-title">Day 2: tRPC — Backend is Just Functions</span>
+    </a>
+    <a href="index.html">
+      <span class="pn-label">Back to start &rarr;</span>
+      <span class="pn-title">Day 1: Schema-First Development</span>
+    </a>
+  </div>
+
+  <footer>
+    <div class="f-links">
+      <a href="index.html">Day 1: Schema</a>
+      <a href="day2.html">Day 2: tRPC</a>
+      <a href="day3.html">Day 3: Frontend</a>
+    </div>
+    <p>T3 Stack Workshop &mdash; Lyra Fellowship</p>
+  </footer>
+</div>
+</main>
+
+<script>
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
