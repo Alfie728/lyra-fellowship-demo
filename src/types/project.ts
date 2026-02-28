@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { ProjectModelSchema } from "generated/zod/schemas/variants/pure/Project.pure";
+import { TaskModelSchema } from "generated/zod/schemas/variants/pure/Task.pure";
+import { UserModelSchema } from "generated/zod/schemas/variants/pure/User.pure";
 import { ProjectInputSchema } from "generated/zod/schemas/variants/input/Project.input";
 
 // ── Inferred types ────────────────────────────────────────
@@ -18,15 +20,9 @@ export const ProjectForDetailsSchema = ProjectModelSchema
   .omit({ tasks: true })
   .extend({
     tasks: z.array(
-      z.object({
-        id: z.string(),
-        title: z.string(),
-        priority: z.string(),
-        status: z.string(),
-        createdAt: z.date(),
-        updatedAt: z.date(),
-        user: z.object({ id: z.string(), name: z.string() }).nullable(),
-      }),
+      TaskModelSchema
+        .pick({ id: true, title: true, priority: true, status: true, createdAt: true, updatedAt: true })
+        .extend({ user: UserModelSchema.pick({ id: true, name: true }).nullable() }),
     ),
   });
 
@@ -34,10 +30,10 @@ export type ProjectForDetails = z.infer<typeof ProjectForDetailsSchema>;
 
 // ── Input schemas ────────────────────────────────────────
 
-export const ProjectGetByIdInputSchema = z.object({ id: z.string() });
+export const ProjectGetByIdInputSchema = ProjectInputSchema.pick({ id: true });
 
 export const ProjectCreateInputSchema = ProjectInputSchema
   .pick({ name: true, description: true })
-  .extend({ name: z.string().min(1, "Project name is required") });
+  .extend({ name: ProjectInputSchema.shape.name.min(1, "Project name is required") });
 
-export const ProjectDeleteInputSchema = z.object({ id: z.string() });
+export const ProjectDeleteInputSchema = ProjectInputSchema.pick({ id: true });

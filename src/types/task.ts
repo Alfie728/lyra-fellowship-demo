@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { TaskModelSchema } from "generated/zod/schemas/variants/pure/Task.pure";
+import { ProjectModelSchema } from "generated/zod/schemas/variants/pure/Project.pure";
+import { UserModelSchema } from "generated/zod/schemas/variants/pure/User.pure";
 import { TaskInputSchema } from "generated/zod/schemas/variants/input/Task.input";
 import { PrioritySchema } from "generated/zod/schemas/enums/Priority.schema";
 import { TaskStatusSchema } from "generated/zod/schemas/enums/TaskStatus.schema";
@@ -15,8 +17,8 @@ export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export const TaskForListSchema = TaskModelSchema
   .omit({ project: true, user: true })
   .extend({
-    project: z.object({ id: z.string(), name: z.string() }),
-    user: z.object({ id: z.string(), name: z.string() }).nullable(),
+    project: ProjectModelSchema.pick({ id: true, name: true }),
+    user: UserModelSchema.pick({ id: true, name: true }).nullable(),
   });
 
 export type TaskForList = z.infer<typeof TaskForListSchema>;
@@ -24,37 +26,25 @@ export type TaskForList = z.infer<typeof TaskForListSchema>;
 export const TaskForDetailsSchema = TaskModelSchema
   .omit({ project: true, user: true })
   .extend({
-    project: z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string().nullable(),
-      createdAt: z.date(),
-    }),
-    user: z.object({ id: z.string(), name: z.string() }).nullable(),
+    project: ProjectModelSchema.pick({ id: true, name: true, description: true, createdAt: true }),
+    user: UserModelSchema.pick({ id: true, name: true }).nullable(),
   });
 
 export type TaskForDetails = z.infer<typeof TaskForDetailsSchema>;
 
 // ── Input schemas ────────────────────────────────────────
 
-export const TaskFilterInputSchema = z
-  .object({
-    projectId: z.string().optional(),
-    priority: PrioritySchema.optional(),
-  })
-  .optional();
+export const TaskFilterInputSchema = TaskInputSchema.pick({ projectId: true, priority: true }).optional();
 
-export const TaskGetByIdInputSchema = z.object({ id: z.string() });
+export const TaskGetByIdInputSchema = TaskInputSchema.pick({ id: true });
 
 export const TaskCreateInputSchema = TaskInputSchema
   .pick({ title: true, priority: true, projectId: true })
-  .extend({ title: z.string().min(1, "Title is required") });
+  .extend({ title: TaskInputSchema.shape.title.min(1, "Title is required") });
 
-export const TaskUpdateInputSchema = z.object({
-  id: z.string(),
-  title: z.string().min(1).optional(),
-  priority: PrioritySchema.optional(),
-  status: TaskStatusSchema.optional(),
-});
+export const TaskUpdateInputSchema = TaskInputSchema
+  .pick({ id: true, title: true, priority: true, status: true })
+  .extend({ title: TaskInputSchema.shape.title.min(1) })
+  .partial({ title: true, priority: true, status: true });
 
-export const TaskDeleteInputSchema = z.object({ id: z.string() });
+export const TaskDeleteInputSchema = TaskInputSchema.pick({ id: true });
