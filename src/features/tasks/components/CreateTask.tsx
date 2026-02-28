@@ -2,13 +2,23 @@
 
 import { useState } from "react";
 import type { Task } from "~/types/task";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH"] as const;
 
-type CreateTaskProps = Pick<Task, "projectId">;
+type ProjectItem = RouterOutputs["project"]["getAll"][number];
 
-export function CreateTask({ projectId }: CreateTaskProps) {
+type CreateTaskProps = {
+  projects: ProjectItem[];
+  projectId: Task["projectId"];
+  onProjectChange: (projectId: string) => void;
+};
+
+export function CreateTask({
+  projects,
+  projectId,
+  onProjectChange,
+}: CreateTaskProps) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] =
     useState<(typeof PRIORITIES)[number]>("MEDIUM");
@@ -29,15 +39,26 @@ export function CreateTask({ projectId }: CreateTaskProps) {
         if (!title.trim()) return;
         createTask.mutate({ title, priority, projectId });
       }}
-      className="flex gap-2"
+      className="flex flex-wrap gap-2"
     >
       <input
         type="text"
         placeholder="New task..."
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="flex-1 rounded-lg border border-gray-600 bg-gray-800 px-4 py-2 text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none"
+        className="min-w-[220px] flex-1 rounded-lg border border-gray-600 bg-gray-800 px-4 py-2 text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none"
       />
+      <select
+        value={projectId}
+        onChange={(e) => onProjectChange(e.target.value)}
+        className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-white focus:border-purple-500 focus:outline-none"
+      >
+        {projects.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name} ({p.taskCount})
+          </option>
+        ))}
+      </select>
       <select
         value={priority}
         onChange={(e) =>
