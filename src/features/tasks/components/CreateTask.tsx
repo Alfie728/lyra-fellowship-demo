@@ -26,9 +26,13 @@ export function CreateTask({
   const utils = api.useUtils();
 
   const createTask = api.task.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       setTitle("");
-      void utils.task.getAll.invalidate();
+      await Promise.all([
+        utils.task.getAll.invalidate(),
+        utils.project.getAll.invalidate(),
+        utils.project.getById.invalidate({ id: projectId }),
+      ]);
     },
   });
 

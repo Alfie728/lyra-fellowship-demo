@@ -17,13 +17,32 @@ export const taskRouter = createTRPCRouter({
     .input(TaskFilterInputSchema)
     .output(z.array(TaskForListSchema))
     .query(async ({ ctx, input }) => {
+      const sortBy = input?.sortBy ?? "createdAt";
+      const sortDir = input?.sortDir ?? "desc";
+      const orderBy =
+        sortBy === "updatedAt"
+          ? { updatedAt: sortDir }
+          : sortBy === "title"
+            ? { title: sortDir }
+            : sortBy === "priority"
+              ? { priority: sortDir }
+              : sortBy === "status"
+                ? { status: sortDir }
+                : { createdAt: sortDir };
+
       const tasks = await ctx.db.task.findMany({
         where: {
           projectId: input?.projectId,
           priority: input?.priority,
+          status: input?.status,
+          title: input?.search
+            ? {
+                contains: input.search,
+              }
+            : undefined,
         },
         include: { project: true, user: true },
-        orderBy: { createdAt: "desc" },
+        orderBy,
       });
 
       return tasks.map((t) => ({

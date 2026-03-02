@@ -5,27 +5,49 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import {
   ProjectForListSchema,
   ProjectForDetailsSchema,
+  ProjectFilterInputSchema,
   ProjectGetByIdInputSchema,
   ProjectCreateInputSchema,
+  ProjectUpdateInputSchema,
   ProjectDeleteInputSchema,
 } from "~/types/project";
 
 export const projectRouter = createTRPCRouter({
   getAll: publicProcedure
+    .input(ProjectFilterInputSchema)
     .output(z.array(ProjectForListSchema))
-    .query(async ({ ctx }) => {
+    .query(async ({ ctx, input }) => {
       const projects = await ctx.db.project.findMany({
+        where: input?.search
+          ? {
+              name: {
+                contains: input.search,
+              },
+            }
+          : undefined,
         include: { _count: { select: { tasks: true } } },
-        orderBy: { createdAt: "desc" },
       });
 
-      return projects.map((p) => ({
+      const items = projects.map((p) => ({
         id: p.id,
         name: p.name,
         description: p.description,
         taskCount: p._count.tasks,
         createdAt: p.createdAt,
       }));
+
+      const minTaskCount = input?.minTaskCount ?? 0;
+      const filtered = items.filter((item) => item.taskCount >= minTaskCount);
+
+      const sortBy = input?.sortBy ?? "createdAt";
+      const sortDir = input?.sortDir ?? "desc";
+      const multiplier = sortDir === "asc" ? 1 : -1;
+
+      return filtered.sort((a, b) => {
+        if (sortBy === "name") return a.name.localeCompare(b.name) * multiplier;
+        if (sortBy === "taskCount") return (a.taskCount - b.taskCount) * multiplier;
+        return (a.createdAt.getTime() - b.createdAt.getTime()) * multiplier;
+      });
     }),
 
   getById: publicProcedure
@@ -66,6 +88,14 @@ export const projectRouter = createTRPCRouter({
     .output(ProjectModelSchema.omit({ tasks: true }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.project.create({ data: input });
+    }),
+
+  update: publicProcedure
+    .input(ProjectUpdateInputSchema)
+    .output(ProjectModelSchema.omit({ tasks: true }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      return ctx.db.project.update({ where: { id }, data });
     }),
 
   delete: publicProcedure

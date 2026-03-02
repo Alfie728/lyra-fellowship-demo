@@ -34,7 +34,15 @@ export type TaskForDetails = z.infer<typeof TaskForDetailsSchema>;
 
 // ── Input schemas ────────────────────────────────────────
 
-export const TaskFilterInputSchema = TaskInputSchema.pick({ projectId: true, priority: true }).optional();
+export const TaskFilterInputSchema = TaskInputSchema
+  .pick({ projectId: true, priority: true, status: true })
+  .partial()
+  .extend({
+    search: TaskInputSchema.shape.title.optional(),
+    sortBy: z.enum(["createdAt", "updatedAt", "title", "priority", "status"]).optional(),
+    sortDir: z.enum(["asc", "desc"]).optional(),
+  })
+  .optional();
 
 export const TaskGetByIdInputSchema = TaskInputSchema.pick({ id: true });
 
@@ -43,8 +51,8 @@ export const TaskCreateInputSchema = TaskInputSchema
   .extend({ title: TaskInputSchema.shape.title.min(1, "Title is required") });
 
 export const TaskUpdateInputSchema = TaskInputSchema
-  .pick({ id: true, title: true, priority: true, status: true })
+  .pick({ id: true, title: true, priority: true, status: true, projectId: true })
   .extend({ title: TaskInputSchema.shape.title.min(1) })
-  .partial({ title: true, priority: true, status: true });
+  .partial({ title: true, priority: true, status: true, projectId: true });
 
 export const TaskDeleteInputSchema = TaskInputSchema.pick({ id: true });
